@@ -1,0 +1,299 @@
+<!DOCTYPE html> 
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Simulador Crédito Simple</title>
+  <style>
+    :root{
+      --primary:#0f62fe; --ink:#0b1633; --muted:#65708a; --bg:#f6f7fb; --card:#ffffff; --ok:#0a8f5b;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial; background:var(--bg); color:var(--ink)}
+    header{padding:24px; text-align:center; background:linear-gradient(180deg,#102a63 0%, #1b3a8a 60%, #244ea8 100%); color:#fff}
+    header h1{margin:0 0 6px; letter-spacing:.4px}
+    header p{margin:0; opacity:.9}
+    .container{max-width:1120px; margin:28px auto; padding:0 20px}
+    .grid{display:grid; gap:16px}
+    @media (min-width:900px){ .grid.cols-2{grid-template-columns:1fr 2fr} }
+    .card{background:var(--card); border-radius:14px; box-shadow:0 10px 24px rgba(16,28,63,.08); overflow:hidden}
+    .card-header{padding:14px 18px; border-bottom:1px solid #eef0f6; font-weight:600; background:#fbfcff}
+    .card-body{padding:18px}
+    .row{display:grid; grid-template-columns:repeat(6, 1fr); gap:12px}
+    .row .col-2{grid-column:span 2}
+    .row .col-3{grid-column:span 3}
+    .row .col-6{grid-column:span 6}
+    label{display:block; font-size:.9rem; color:var(--muted); margin-bottom:6px}
+    input, select{width:100%; padding:10px 12px; border:1px solid #dde2ee; border-radius:10px; font-size:1rem; background:#fff}
+    input:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(15,98,254,.15)}
+    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
+    .btn{border:0; padding:10px 14px; border-radius:10px; font-weight:600; cursor:pointer}
+    .btn.primary{background:var(--primary); color:#fff}
+    .btn.ghost{background:#eef2ff; color:#223;}
+    .btn.success{background:var(--ok); color:#fff}
+
+    .summary{display:grid; gap:10px; grid-template-columns:repeat(6, 1fr)}
+    .kpi{background:#fbfcff; border:1px solid #eef0f6; border-radius:12px; padding:12px}
+    .kpi small{color:var(--muted); display:block}
+    .kpi strong{font-size:1.05rem}
+
+    table{width:100%; border-collapse:separate; border-spacing:0; font-variant-numeric:tabular-nums}
+    thead th{position:sticky; top:0; background:#0e1f4a; color:#fff; z-index:1}
+    th, td{padding:10px 12px; border-bottom:1px solid #eef0f6; text-align:right}
+    th:first-child, td:first-child{border-top-left-radius:8px}
+    th:last-child, td:last-child{border-top-right-radius:8px}
+    td.left, th.left{text-align:left}
+    tfoot td{font-weight:700; background:#fbfcff}
+    .table-wrap{max-height:520px; overflow:auto; border:1px solid #eef0f6; border-radius:12px}
+    .note{color:#6e7895; font-size:.92rem}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>SIMULADOR CRÉDITO SIMPLE CON GARANTÍA HIPOTECARIA</h1>
+    <p>HTML + CSS + JavaScript (cálculo por sistema francés / pago fijo por periodo)</p>
+  </header>
+
+  <div class="container grid cols-2">
+    <!-- Parámetros -->
+    <section class="card">
+      <div class="card-header">Parámetros del crédito</div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-3">
+            <label>Monto financiado (MXN)</label>
+            <!-- FIJO -->
+            <input id="monto" type="number" step="0.01" value="1000000" readonly />
+          </div>
+          <div class="col-3">
+            <label>Interés anual (%)</label>
+            <!-- FIJO -->
+            <input id="tasaAnual" type="number" step="0.0001" value="19" readonly />
+          </div>
+          <div class="col-3">
+            <label>Plazo (años)</label>
+            <!-- FIJO -->
+            <input id="plazoAnios" type="number" step="0.5" value="3" readonly />
+          </div>
+          <div class="col-3">
+            <label>Pagos por año</label>
+            <!-- FIJO -->
+            <select id="pagosPorAnio" disabled>
+              <option value="12" selected>12 (mensual)</option>
+              <option value="6">6 (bimestral)</option>
+              <option value="4">4 (trimestral)</option>
+              <option value="24">24 (quincenal aprox.)</option>
+              <option value="52">52 (semanal aprox.)</option>
+            </select>
+          </div>
+          <div class="col-3">
+            <label>Fecha de inicio</label>
+            <input id="fechaInicio" type="date" value="2025-01-01" />
+          </div>
+          <div class="col-3">
+            <label>Redondeo</label>
+            <select id="redondeo">
+              <option value="2" selected>2 decimales</option>
+              <option value="0">0 decimales</option>
+              <option value="4">4 decimales</option>
+            </select>
+          </div>
+          <div class="col-6 actions">
+            <button class="btn primary" id="btnCalcular">Calcular</button>
+            <button class="btn ghost" id="btnLimpiar">Limpiar</button>
+            <button class="btn success" id="btnCSV">Exportar CSV</button>
+          </div>
+        </div>
+        <p class="note" style="margin-top:10px">Nota: el simulador asume <b>pago fijo por periodo</b>. Si el número de pagos por año no divide 12 de forma exacta, la fecha se aproxima sumando el número de <i>meses por periodo = 12 / pagosPorAño</i> (redondeado).</p>
+      </div>
+    </section>
+
+    <!-- Resumen -->
+    <section class="card">
+      <div class="card-header">Resumen</div>
+      <div class="card-body">
+        <div class="summary" id="kpis">
+          <!-- KPIs render here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Tabla -->
+    <section class="card" style="grid-column:1/-1">
+      <div class="card-header">Calendario de pagos</div>
+      <div class="card-body">
+        <div class="table-wrap">
+          <table id="tabla">
+            <thead>
+              <tr>
+                <th class="left">No.</th>
+                <th class="left">Fecha de pago</th>
+                <th>Saldo insoluto</th>
+                <th>Amortización a capital</th>
+                <th>Interés por periodo</th>
+                <th>Tasa fija</th>
+                <th>Importe del pago</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot></tfoot>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const $ = (q) => document.querySelector(q);
+
+    const fmtCurrency = (n) => n.toLocaleString('es-MX', { style:'currency', currency:'MXN' });
+    const fmtPercent  = (n) => (n*100).toFixed(2) + '%';
+    const fmtDateMx   = (d) => d.toLocaleDateString('es-MX', { day:'2-digit', month:'2-digit', year:'numeric' });
+
+    function addMonths(date, months){
+      const d = new Date(date.getTime());
+      const day = d.getDate();
+      d.setMonth(d.getMonth() + months);
+      if (d.getDate() < day) d.setDate(0);
+      return d;
+    }
+
+    function calcSchedule({ monto, tasaAnual, plazoAnios, pagosPorAnio, fechaInicio, decimals=2 }){
+      const n = Math.round(plazoAnios * pagosPorAnio);
+      const r = tasaAnual / 100 / pagosPorAnio; // tasa por periodo
+      if (n <= 0 || r < 0) throw new Error('Parámetros inválidos');
+
+      // pago fijo (sistema francés)
+      const pago = r === 0 ? (monto / n) : (monto * r) / (1 - Math.pow(1 + r, -n));
+
+      let saldo = monto;
+      const rows = [];
+      const monthsPerPeriod = Math.max(1, Math.round(12 / pagosPorAnio));
+      let fechaPago = addMonths(fechaInicio, monthsPerPeriod); // 1er pago después del inicio
+
+      let totalInteres=0, totalCapital=0, totalPago=0;
+
+      for (let i = 1; i <= n; i++){
+        const interes = +(saldo * r);
+        let capital   = +(pago - interes);
+        if (i === n){
+          capital = saldo; // amortiza todo lo que quede
+        }
+        const factor = Math.pow(10, decimals);
+        const interesR = Math.round(interes * factor)/factor;
+        let capitalR   = Math.round(capital * factor)/factor;
+        let pagoR      = Math.round((capitalR + interesR) * factor)/factor;
+
+        if (i === n){
+          capitalR = Math.round(saldo * factor)/factor;
+          pagoR    = Math.round((capitalR + interesR) * factor)/factor;
+        }
+
+        rows.push({
+          no:i,
+          fecha: new Date(fechaPago),
+          saldoInsoluto: saldo,
+          amortizacion: capitalR,
+          interes: interesR,
+          tasa: r,
+          pago: pagoR,
+        });
+
+        saldo = +(saldo - capitalR);
+        if (saldo < 0) saldo = 0;
+
+        totalInteres += interesR; totalCapital += capitalR; totalPago += pagoR;
+        fechaPago = addMonths(fechaPago, monthsPerPeriod);
+      }
+
+      return { rows, totales:{ totalInteres, totalCapital, totalPago }, pagoFijo: +(Math.round(pago*100)/100), tasaPeriodo:r, numeroPagos:n };
+    }
+
+    function render(){
+      const monto        = parseFloat($('#monto').value || '0');
+      const tasaAnual    = parseFloat($('#tasaAnual').value || '0');
+      const plazoAnios   = parseFloat($('#plazoAnios').value || '0');
+      const pagosPorAnio = parseInt($('#pagosPorAnio').value || '12', 10);
+      const fechaInicio  = new Date($('#fechaInicio').value);
+      const decimals     = parseInt($('#redondeo').value, 10);
+
+      const { rows, totales, pagoFijo, tasaPeriodo, numeroPagos } = calcSchedule({ monto, tasaAnual, plazoAnios, pagosPorAnio, fechaInicio, decimals });
+
+      const kpiHtml = `
+        <div class="kpi"><small>Monto financiado</small><strong>${fmtCurrency(monto)}</strong></div>
+        <div class="kpi"><small>Interés anual</small><strong>${tasaAnual.toFixed(2)}%</strong></div>
+        <div class="kpi"><small>Pagos por año</small><strong>${pagosPorAnio}</strong></div>
+        <div class="kpi"><small>Número de pagos</small><strong>${numeroPagos}</strong></div>
+        <div class="kpi"><small>Tasa por periodo</small><strong>${fmtPercent(tasaPeriodo)}</strong></div>
+        <div class="kpi"><small>Pago fijo estimado</small><strong>${fmtCurrency(pagoFijo)}</strong></div>`;
+      $('#kpis').innerHTML = kpiHtml;
+
+      const tbody = $('#tabla tbody');
+      tbody.innerHTML = rows.map(r => `
+        <tr>
+          <td class="left">${r.no}</td>
+          <td class="left">${fmtDateMx(r.fecha)}</td>
+          <td>${fmtCurrency(r.saldoInsoluto)}</td>
+          <td>${fmtCurrency(r.amortizacion)}</td>
+          <td>${fmtCurrency(r.interes)}</td>
+          <td>${(tasaPeriodo*100).toFixed(2)}%</td>
+          <td>${fmtCurrency(r.pago)}</td>
+        </tr>`).join('');
+
+const tfoot = $('#tabla tfoot');
+tfoot.innerHTML = `
+  <tr>
+    <td class="left" colspan="3">Totales</td>
+    <td>${fmtCurrency(totales.totalCapital)}</td>
+    <td></td>
+    <td></td>
+    <td></td>
+  </tr>`;
+    }
+
+    function toCSV(){
+      const table = document.getElementById('tabla');
+      const rows = [...table.querySelectorAll('tr')].map(tr => [...tr.children].map(td => '"' + td.innerText.replace(/"/g,'""') + '"').join(','));
+      const blob = new Blob([rows.join('\n')], { type:'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'calendario_pagos.csv'; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function limpiar(){
+      document.getElementById('tabla').querySelector('tbody').innerHTML = '';
+      document.getElementById('tabla').querySelector('tfoot').innerHTML = '';
+      document.getElementById('kpis').innerHTML = '';
+    }
+
+    document.getElementById('btnCalcular').addEventListener('click', (e)=>{ e.preventDefault(); try{ render(); }catch(err){ alert(err.message); }});
+    document.getElementById('btnCSV').addEventListener('click', (e)=>{ e.preventDefault(); toCSV(); });
+    document.getElementById('btnLimpiar').addEventListener('click', (e)=>{ e.preventDefault(); limpiar(); });
+
+    // ENDURECER los campos fijos: bloquea teclado/pegar/rueda
+    (function lockFixed(){
+      const block = (el)=>{
+        if(!el) return;
+        el.readOnly = true;
+        el.addEventListener('keydown', e=> e.preventDefault());
+        el.addEventListener('beforeinput', e=> e.preventDefault());
+        el.addEventListener('paste', e=> e.preventDefault());
+        el.addEventListener('drop', e=> e.preventDefault());
+        el.addEventListener('wheel', e=> e.preventDefault(), {passive:false});
+      };
+      block(document.getElementById('monto'));
+      block(document.getElementById('tasaAnual'));
+      block(document.getElementById('plazoAnios'));
+      const pagos = document.getElementById('pagosPorAnio');
+      if (pagos){
+        pagos.disabled = true;
+        pagos.addEventListener('mousedown', e=> e.preventDefault());
+      }
+    })();
+
+    // Render inicial con valores por defecto
+    render();
+  </script>
+</body>
+</html>
